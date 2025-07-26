@@ -11,6 +11,7 @@ target_link_libraries(${NAME}
 	pico_stdlib
     FreeRTOS-Kernel-Heap4
     pico_cyw43_arch_none
+    hardware_pwm
 	)
 
 # create map/bin/hex file etc.
