@@ -1,181 +1,94 @@
 #include "pico/stdlib.h"
 #include "pico/cyw43_arch.h"
 #include "hardware/pwm.h"
-// #include "MotorManager.h"
+#include "hardware/pio.h"
+#include "quadrature_encoder.pio.h"
+#include "MotorMANAGER.h"
 
+#define LEFT_CW_PIN 26
+#define LEFT_CCW_PIN 19
 #define LEFT_ENC_A 27
 #define LEFT_ENC_B 28 
-#define CW_PIN 19
-#define CCW_PIN 26
 
-uint8_t RotEncCW[4] = {2, 0, 3, 1};
-uint8_t RotEncCCW[4] = {1, 3, 0, 2};
+#define RIGHT_CW_PIN 21
+#define RIGHT_CCW_PIN 20
+#define RIGHT_ENC_A 16
+#define RIGHT_ENC_B 17
 
-int16_t Pos = 0;
-int32_t DeltaPos = 0;
-
-uint16_t NumTicks=632;
-
-uint8_t Last=0;
-
-int8_t Count=0;
-
-uint32_t LastTime = 0;
-
-uint8_t c;
-
-bool CW_ = true;
-
-float ActRPM = 0.0;
-float Throttle = 0.0;
-float MvAvgRPM = 0.0;
-
-
-
-void get_rpm(bool cw){
-    uint32_t now = to_ms_since_boot (get_absolute_time());
-    if (LastTime != 0){
-        uint32_t ms = now - LastTime;
-        float rpm = 60000.0 / (float)ms;
-        rpm = rpm / (float)NumTicks;
-        ActRPM = rpm;
-        MvAvgRPM = (rpm * 1.0 + MvAvgRPM * 3.0) / 4.0; 
-    }
-    LastTime = now;
-}
-
-float get_ActRPM(){
-    uint32_t now = to_ms_since_boot(get_absolute_time());
-    uint32_t ms = now - LastTime;
-    if (ms > 250){
-        ActRPM = 0.0;
-    }
-    return ActRPM;
-}
-
-float get_MvAvgRPM(){
-    if (get_ActRPM() == 0.0){
-        MvAvgRPM = 0.0;
-    }
-    return MvAvgRPM;
-}
-
-float get_RadPerSec(){
-    float rpm = get_MvAvgRPM();
-    float rps = (rpm / 60.0) * (2.0 * 3.14159265358979323846);
-    return rps;
-}
-
-void encoder_callback(uint gpio, uint32_t events) {
-    c = gpio_get(LEFT_ENC_A);
-    c = c << 1;
-    c = (gpio_get(LEFT_ENC_B)) | c;
-    
-    if (RotEncCW[Last] == c){
-        Count++;
-        if (Count > 3){
-            Pos++;
-            DeltaPos++;
-            if (Pos == NumTicks){
-                Pos = 0;
-            }
-            // printf("CW %d %d\n", Pos, Count);
-            get_rpm(true);
-            Count = 0;
-        }
-        Last = c;
-    }
-
-    if (RotEncCCW[Last] == c){
-        Count--;
-        if (Count < -3){
-            Pos--;
-            DeltaPos--;
-            if (Pos == -1){
-                Pos = NumTicks - 1;
-            }
-            // printf("CCW %d %d\n", Pos, Count);
-            get_rpm(false);
-            Count = 0;
-        }
-        Last = c;
-    }
-    
-    
-}
-
-void set_Throttle(float percent, bool cw){
-    Throttle = percent;
-    CW_ = cw;
-    
-    if (Throttle < 0.0){
-        Throttle = 0.0;
-    }
-
-    if(Throttle == 0.0){
-        ActRPM = 0.0;
-        LastTime = 0;
-        pwm_set_gpio_level(CW_PIN, 0);
-        pwm_set_gpio_level(CCW_PIN, 0);
-    }
-
-    int pwm = (int)((float)(0xffff) * Throttle);
-    if (cw){
-        pwm_set_gpio_level(CW_PIN, pwm);
-        pwm_set_gpio_level(CCW_PIN, 0);
-    } else {
-        pwm_set_gpio_level(CCW_PIN, pwm);
-        pwm_set_gpio_level(CW_PIN, 0);
-    }
-}
-
-int main(void) 
-{
+int main(void){
     stdio_init_all();
     sleep_ms(2000);
     printf("Starting, Testing, VAMOOOOOOOS\n");
-
-    gpio_init(LEFT_ENC_A);
-    gpio_set_dir(LEFT_ENC_A, GPIO_IN);
-    // gpio_pull_up(LEFT_ENC_A);
-
-    gpio_init(LEFT_ENC_B);
-    gpio_set_dir(LEFT_ENC_B, GPIO_IN);
-    // gpio_pull_up(LEFT_ENC_B);
-
-    gpio_set_irq_enabled_with_callback(LEFT_ENC_A, GPIO_IRQ_EDGE_FALL | GPIO_IRQ_EDGE_RISE, true, encoder_callback);
-    gpio_set_irq_enabled_with_callback(LEFT_ENC_B, GPIO_IRQ_EDGE_FALL | GPIO_IRQ_EDGE_RISE, true, encoder_callback);
-
-    gpio_init(CW_PIN);
-    gpio_set_function(CW_PIN, GPIO_FUNC_PWM);
-    pwm_set_gpio_level(CW_PIN, 0);
-    uint slice_num = pwm_gpio_to_slice_num(CW_PIN);
-    pwm_set_enabled(slice_num, true);
-
-    gpio_init(CCW_PIN);
-    gpio_set_function(CCW_PIN, GPIO_FUNC_PWM);
-    pwm_set_gpio_level(CCW_PIN, 0);
-    slice_num = pwm_gpio_to_slice_num(CCW_PIN);
-    pwm_set_enabled(slice_num, true);
-
+    
+    MotorManager left(LEFT_CW_PIN, LEFT_CCW_PIN, LEFT_ENC_A, LEFT_ENC_B, 0, 0.02, 0.03, 0.00);
+    MotorManager right(RIGHT_CW_PIN, RIGHT_CCW_PIN, RIGHT_ENC_A, RIGHT_ENC_B, 1, 0.02, 0.03, 0.00);
     bool cw = true;
-    while (1){
-        // tight_loop_contents(); 
-        // printf("is this on?\n");
-        // printf("ticks:%d, Pos:%d, Count:%d, DeltaPos:%d\n", NumTicks,Pos, Count, DeltaPos);
-        // printf("ActRPM:%.2f, MvAvgRPM:%.2f, RadPerSec:%.2f\n", get_ActRPM(), get_MvAvgRPM(), get_RadPerSec());
-        // sleep_ms(100);
-        for (float t = 0.3; t <= 1.0; t += 0.1) {
-            printf("Setting Throttle to %.2f\n", t);
-            set_Throttle(t, cw);
-            for(int i = 0; i < 20; i++) {
-                printf("ActRPM: %.2f, MvAvgRPM: %.2f, RadPerSec: %.2f\n", get_ActRPM(), get_MvAvgRPM(), get_RadPerSec());
-                sleep_ms(500);
-            }
+    sleep_ms(1000);
+    float thr = 10.0f;
+    int ko = 1;
+    while(1){
+        left.set_TargetRPM(thr, cw);
+        right.set_TargetRPM(thr, cw);
+        // printf("LEFTThrottle: %.2f, LEFTRPM: %.2f, LEFTDelta: %.2f, LEFTAvgRPM: %.2f, LEFTOmega: %.2f\n", 
+        // left.get_Throttle(), 
+        // left.get_RPM(),
+        // left.get_delta(),
+        // left.get_AvgRPM(), 
+        // left.get_RadPerSec());
+        printf("DIR: %s,R_Thr: %.2f, R_Revo: %.2f, R_RPM: %.2f, R_OutThr: %.2f\n", 
+        right.get_Direction() ? "CW" : "CCW",
+        right.get_Throttle(), 
+        right.get_Revolutions(),
+        right.get_RPM(),
+        right.get_OutputThrottle());
+        printf("DIR: %s,L_Thr: %.2f, L_Revo: %.2f, L_RPM: %.2f, L_OutThr: %.2f\n", 
+        left.get_Direction() ? "CW" : "CCW",
+        left.get_Throttle(), 
+        left.get_Revolutions(),
+        left.get_RPM(),
+        left.get_OutputThrottle());
+        ko += 1;
+        printf("THR: %.2f, KO: %d\n", thr, ko);
+        if (ko > 500) {
+            ko = 1;
+            thr += 10.0f;
             
+            if (thr > 52.0f) {
+                thr = 10.0f;
+                ko = 1;
+                cw = !cw;
+            }
         }
-        cw = !cw; 
+
+        sleep_ms(10);
     }
+    
+
+
+    // while(1){
+    //     for (float i = 0.3; i <= 1.0; i += 0.1){
+    //         left.set_Throttle(i, cw);
+    //         right.set_Throttle(i, !cw);
+    //         for(int j = 0; j < 20; j++){
+    //             left.update(pio0, 0);
+    //             right.update(pio0, 1);
+    //             printf("LEFTThrottle: %.2f, LEFTRPM: %.2f, LEFTAvgRPM: %.2f, LEFTOmega: %.2f\n", 
+    //             left.get_Throttle(), 
+    //             left.get_RPM(),
+    //             left.get_AvgRPM(), 
+    //             left.get_RadPerSec());
+    //             printf("RIGHTThrottle: %.2f, RIGHTRPM: %.2f, RIGHTAvgRPM: %.2f, RIGHTOmega: %.2f\n", 
+    //             right.get_Throttle(), 
+    //             right.get_RPM(),
+    //             right.get_AvgRPM(), 
+    //             right.get_RadPerSec());
+
+    //             sleep_ms(500);
+    //         }
+            
+    //     }
+    //     cw = !cw; // Toggle direction
+    // }
 
     return 0;
 }

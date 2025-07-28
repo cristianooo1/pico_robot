@@ -1,10 +1,15 @@
 add_executable(${NAME}
         main.cpp
+        MotorMANAGER.cpp
+        MotorPID.cpp
         )
 
 target_include_directories(${NAME} PRIVATE
     ${CMAKE_CURRENT_LIST_DIR}
 )
+
+pico_generate_pio_header(${NAME} ${CMAKE_CURRENT_LIST_DIR}/quadrature_encoder.pio)
+
 
 # Pull in our pico_stdlib which pulls in commonly used features
 target_link_libraries(${NAME} 
@@ -12,6 +17,8 @@ target_link_libraries(${NAME}
     FreeRTOS-Kernel-Heap4
     pico_cyw43_arch_none
     hardware_pwm
+    pico_multicore
+    hardware_pio
 	)
 
 # create map/bin/hex file etc.
