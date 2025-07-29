@@ -105,7 +105,7 @@ float MotorManager::get_RPM() {
 }
 
 float MotorManager::get_RadPerSec() {
-    AvgRPM = (RPM + AvgRPM * 3.0f) / 4.0f;
+    AvgRPM = (get_RPM() + AvgRPM * 3.0f) / 4.0f;
     Omega = (AvgRPM / 60.0f) * (2.0f * 3.14159265358979323846f);
     return Omega;
 }
@@ -130,6 +130,18 @@ void MotorManager::set_TargetRPM(float target, bool cw) {
 
     OutputThrottle = pidController.compute(target, currentRPM);
 
+    // Apply throttle
+    set_Throttle(OutputThrottle, CW_);
+}
+
+void MotorManager::set_TargetRadPerSec(float target_RadPerSec, bool cw) {
+
+    update(pio, SM_);  // This updates RPM internally
+    CW_ = cw;
+    float currentRPM = fabs(get_RPM());
+    target_RadPerSec = target_RadPerSec * 60.0f / (2.0f * 3.14159265358979323846f); // Convert rad/s to RPM
+    OutputThrottle = pidController.compute(target_RadPerSec, currentRPM);
+    
     // Apply throttle
     set_Throttle(OutputThrottle, CW_);
 }
