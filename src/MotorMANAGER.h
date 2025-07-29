@@ -27,6 +27,7 @@ class MotorManager {
         float get_RadPerSec();
         float get_delta();
         void set_TargetRPM(float target, bool cw);
+        void set_TargetRadPerSec(float target_RadPerSec, bool cw);
 
         float get_Revolutions();
         float get_OutputThrottle();

@@ -2,6 +2,7 @@ add_executable(${NAME}
         main.cpp
         MotorMANAGER.cpp
         MotorPID.cpp
+        DiffDRIVE.cpp
         )
 
 target_include_directories(${NAME} PRIVATE
