@@ -27,7 +27,7 @@ float PID::compute(float setpoint, float measured) {
     }
 
     float output = p + i + d;
-    printf("Er: %.2f, P: %.2f, I: %.2f, D: %.2f, Out: %.2f\n", error, p, i, d, output);
+    // printf("Er: %.2f, P: %.2f, I: %.2f, D: %.2f, Out: %.2f\n", error, p, i, d, output);
     output = std::clamp(output, 0.0f, 1.0f); 
     Previous_Error = error;
     // printf("Er: %.2f, P: %.2f, I: %.2f, D: %.2f, Out: %.2f\n", error, p, i, d, output);

@@ -36,6 +36,8 @@ private:
     float error = 0.0f;
     float MAXBrake = 0.3f; // Max brake percentage
 
+    uint32_t ms_counter_pid = 0;
+
 };
 
 
