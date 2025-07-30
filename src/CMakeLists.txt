@@ -3,6 +3,12 @@ add_executable(${NAME}
         MotorMANAGER.cpp
         MotorPID.cpp
         DiffDRIVE.cpp
+        TCP_Server.c
+        )
+
+target_compile_definitions(${NAME} PRIVATE
+        WIFI_SSID="DIGI-2ACk"
+        WIFI_PASSWORD="zFVKg25p"
         )
 
 target_include_directories(${NAME} PRIVATE
@@ -15,11 +21,17 @@ pico_generate_pio_header(${NAME} ${CMAKE_CURRENT_LIST_DIR}/quadrature_encoder.pi
 # Pull in our pico_stdlib which pulls in commonly used features
 target_link_libraries(${NAME} 
 	pico_stdlib
-    FreeRTOS-Kernel-Heap4
-    pico_cyw43_arch_none
+    
+
+    pico_cyw43_arch_lwip_threadsafe_background
+    # pico_cyw43_arch_lwip_none
+
+    # pico_cyw43_arch_lwip_background
+
     hardware_pwm
     pico_multicore
     hardware_pio
+    FreeRTOS-Kernel-Heap4
 	)
 
 # create map/bin/hex file etc.
