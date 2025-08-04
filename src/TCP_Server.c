@@ -50,7 +50,7 @@ static err_t on_recv(void *arg, struct tcp_pcb *tpcb, struct pbuf *p, err_t err)
                 last_vel  = v;
                 last_turn = t;
                 cmd_ready = true;
-                printf("Storing cmd: v=%.2f, t=%.2f\n", v, t);
+                // printf("Storing cmd: v=%.2f, t=%.2f\n", v, t);
             } else {
                 printf("Unknown cmd: '%s'\n", recv_buf);
             }

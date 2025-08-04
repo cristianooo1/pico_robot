@@ -1,2 +1,20 @@
 build/
 .vscode/
+
+# Python project ignores
+python_scripts/__pycache__/
+python_scripts/*.py[co]
+python_scripts/build/
+python_scripts/dist/
+python_scripts/wheels/
+python_scripts/*.egg-info
+python_scripts/.venv
+python_scripts/OLD_main.py
+python_scripts/button_logic.py
+python_scripts/secretss.py
+
+# old files
+src/main_funcitoneaza_tcp.c
+src/main_old_TCP.c
+
+src/secrets.cmake

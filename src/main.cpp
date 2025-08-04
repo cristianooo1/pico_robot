@@ -54,31 +54,49 @@ int main(void){
 
         if (tcp_server_poll(&vel, &turn)) {
             curr_vel = vel;
-            curr_turn = turn;
-            printf("Command: forward=%.2f, turn=%.2f\n", vel, turn);
+            curr_turn = turn;}
             
-            
-        } 
+            // printf("Command: forward=%.2f, turn=%.2f\n", vel, turn);
+            // if (vel != curr_vel || turn != curr_turn){
+            //     robotul.setWheelVelocity(vel, turn);
+            // }
         robotul.setWheelVelocity(curr_vel, curr_turn);
-        ms_counter += LOOP_MS;
-        if(ms_counter > 500){
-            ms_counter = 0;
-            printf("DIR: %s,R_Thr: %.2f, R_RPM: %.2f, R_RPS: %.2f, R_OutThr: %.2f\n", 
-            right.get_Direction() ? "CW" : "CCW",
-            right.get_Throttle(),
-            right.get_RPM(), 
-            right.get_RadPerSec(),
-            right.get_OutputThrottle());
-            printf("DIR: %s,L_Thr: %.2f, L_RPM: %.2f, L_RPS: %.2f, L_OutThr: %.2f\n", 
-            left.get_Direction() ? "CW" : "CCW",
-            left.get_Throttle(),
-            left.get_RPM(), 
-            left.get_RadPerSec(),
-            left.get_OutputThrottle());
+        printf("DIR: %s,R_Thr: %.2f, R_RPM: %.2f, R_RPS: %.2f, R_OutThr: %.2f\n", 
+        right.get_Direction() ? "CW" : "CCW",
+        right.get_Throttle(),
+        right.get_RPM(), 
+        right.get_RadPerSec(),
+        right.get_OutputThrottle());
+        printf("DIR: %s,L_Thr: %.2f, L_RPM: %.2f, L_RPS: %.2f, L_OutThr: %.2f\n", 
+        left.get_Direction() ? "CW" : "CCW",
+        left.get_Throttle(),
+        left.get_RPM(), 
+        left.get_RadPerSec(),
+        left.get_OutputThrottle());
+        curr_vel = vel;
+        curr_turn = turn;
+            
+        
+        // robotul.setWheelVelocity(curr_vel, curr_turn);
+        // ms_counter += LOOP_MS;
+        // if(ms_counter > 500){
+        //     ms_counter = 0;
+        //     printf("DIR: %s,R_Thr: %.2f, R_RPM: %.2f, R_RPS: %.2f, R_OutThr: %.2f\n", 
+        //     right.get_Direction() ? "CW" : "CCW",
+        //     right.get_Throttle(),
+        //     right.get_RPM(), 
+        //     right.get_RadPerSec(),
+        //     right.get_OutputThrottle());
+        //     printf("DIR: %s,L_Thr: %.2f, L_RPM: %.2f, L_RPS: %.2f, L_OutThr: %.2f\n", 
+        //     left.get_Direction() ? "CW" : "CCW",
+        //     left.get_Throttle(),
+        //     left.get_RPM(), 
+        //     left.get_RadPerSec(),
+        //     left.get_OutputThrottle());
             
 
 
-        }
+        // }
         
         
         // robotul.setWheelVelocity(0.0f, -1.5f); // Linear:0.15 m/s = 5rad/s = 48 RPM; Angualr:1.5 rad/s -> 5rad/s per wheel

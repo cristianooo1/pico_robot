@@ -9,6 +9,7 @@ set(PICO_SDK_PATH ${CMAKE_CURRENT_SOURCE_DIR}/lib/pico-sdk)
 # include_directories(${FREERTOS_CONFIG_PATH})
 
 include(pico_sdk_import.cmake)
+include(${CMAKE_CURRENT_SOURCE_DIR}/src/secrets.cmake)
 
 project(${NAME} C CXX ASM)
 set(CMAKE_C_STANDARD 11)
