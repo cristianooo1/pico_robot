@@ -27,11 +27,12 @@ def main():
             client.send_floats(fwd, turn)
             curr_vel = fwd
             curr_turn = turn
-        time.sleep(0.1)
+        
         # Optionally read response:
         # resp = client.receive()
         # if resp:
         #     print("Received:", resp)
+        time.sleep(0.1)
 
 if __name__ == "__main__":
     main()

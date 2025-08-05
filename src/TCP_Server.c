@@ -22,6 +22,12 @@ static volatile float last_vel  = 0.0f;
 static volatile float last_turn = 0.0f;
 static volatile bool  cmd_ready = false;
 
+// err_t tcp_server_send(const char *fmt, ...);
+// static err_t on_recv(void *arg, struct tcp_pcb *tpcb, struct pbuf *p, err_t err);
+// static err_t on_accept(void *arg, struct tcp_pcb *newpcb, err_t err);
+// bool tcp_server_poll(float *out_vel, float *out_turn);
+// void tcp_server_init(void);
+
 // Called whenever a full “\n”‑terminated line arrives
 static err_t on_recv(void *arg, struct tcp_pcb *tpcb, struct pbuf *p, err_t err) {
     if (!p) {
@@ -67,6 +73,44 @@ static err_t on_recv(void *arg, struct tcp_pcb *tpcb, struct pbuf *p, err_t err)
         }
     }
     return ERR_OK;
+}
+
+err_t tcp_server_send(const char *fmt, ...)
+{
+    if (!client_pcb) {
+        // no one to send to
+        return ERR_CONN;
+    }
+
+    char out_buf[RECV_BUF_SZ];
+    va_list args;
+    va_start(args, fmt);
+    int len = vsnprintf(out_buf, sizeof(out_buf), fmt, args);
+    va_end(args);
+
+    if (len <= 0) {
+        return ERR_ARG;
+    }
+
+    if (len > (int)sizeof(out_buf) - 2) {
+        len = sizeof(out_buf) - 2;
+    }
+
+    // Append newline if missing
+    if (out_buf[len - 1] != '\n') {
+        out_buf[len++] = '\n';
+        out_buf[len]   = '\0';
+    }
+
+    u16_t avail = tcp_sndbuf(client_pcb);
+    if (avail < (u16_t)len) {
+        // Not enough room at this moment
+        return ERR_MEM;
+    }
+
+    err_t err = tcp_write(client_pcb, out_buf, len, TCP_WRITE_FLAG_COPY);
+    if (err != ERR_OK) return err;
+    return tcp_output(client_pcb);
 }
 
 // Called when a client connects
