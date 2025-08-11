@@ -13,6 +13,18 @@ python_scripts/OLD_main.py
 python_scripts/button_logic.py
 python_scripts/secretss.py
 
+python_scripts/apriltag_detection/__pycache__/
+python_scripts/apriltag_detection/*.py[co]
+python_scripts/apriltag_detection/build/
+python_scripts/apriltag_detection/dist/
+
+python_scripts/utils/__pycache__/
+python_scripts/utils/*.py[co]
+python_scripts/utils/build/
+python_scripts/utils/dist/
+
+python_scripts/live_odometry_anim
+
 # old files
 src/main_funcitoneaza_tcp.c
 src/main_old_TCP.c
