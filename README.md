@@ -27,7 +27,8 @@ The project represents my personal attempt to bring a differential drive mobile 
   - Custom PCB board
 
 Electrical schematic:
-to be added
+<img width="1392" height="807" alt="Electrical_schematic" src="https://github.com/user-attachments/assets/fc5d7038-79b6-4b46-afbd-1d9a569c9a41" />
+
 
 
 ##
