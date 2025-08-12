@@ -61,7 +61,7 @@ cd build
 cmake ..
 make
 ```
-For the TCP server to work on your local network, you need to manually create a secrets.cmake file containing your WiFi credentials. 
+For the TCP server to work on your local network, you need to manually create a **secrets.cmake** file containing your WiFi credentials. 
 ```bash
 cd ~/pico_robot/src
 touch secrets.cmake
