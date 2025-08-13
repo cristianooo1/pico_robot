@@ -4,14 +4,11 @@ import numpy as np
 from pathlib import Path
 import sys
 
-
-
 def get_calib_matrix():
     curr_dir = Path(__file__).parent
 
     try:
         calibration = np.load(curr_dir / "calibration.npz")
-
     except FileNotFoundError:
         sys.exit(f"Calibration file not found in {curr_dir}")
 
@@ -19,7 +16,11 @@ def get_calib_matrix():
 
     return camera_matrix
 
-def get_aptDetector(fam = "tagStandard41h12", nthreads = 1, quad_decimate = 1.0, quad_sigma = 0.0, refine_edges = 1, decode_sharpening = 0.25, debug = 0):
+
+def make_aptDetector(fam = "tagStandard41h12", nthreads = 1, 
+                    quad_decimate = 1.0, quad_sigma = 0.0, 
+                    refine_edges = 1, decode_sharpening = 0.25, 
+                    debug = 0):
 
     apriltag_detector = pat.Detector(
         families=fam,
@@ -33,41 +34,51 @@ def get_aptDetector(fam = "tagStandard41h12", nthreads = 1, quad_decimate = 1.0,
     return apriltag_detector
 
 
-def make_detection(apt_detector, frame ,cam_mtx:np.ndarray, pose: bool = True, tag : float = 0.11111111):
-    detection = apt_detector.detect(   img = frame, 
-                                                estimate_tag_pose=pose, 
-                                                camera_params=(
-                                                        cam_mtx[0,0],
-                                                        cam_mtx[1,1],
-                                                        cam_mtx[0,2],
-                                                        cam_mtx[1,2]),
-                                                tag_size=tag)
+class Apriltag:
+    def __init__(self, detection):
+        self.tag_id = detection.tag_id
+        self.center = tuple(map(int, detection.center))
+        self.corners = np.array(detection.corners, dtype=np.int32)
+        self.pose_t = detection.pose_t
+        self.pose_R = detection.pose_R
+
+def detect_Tags(apt_detector, frame ,cam_mtx:np.ndarray, pose: bool = True, tag_size : float = 0.1):
+    detections = apt_detector.detect(   img = frame, 
+                                        estimate_tag_pose=pose, 
+                                        camera_params=(
+                                                cam_mtx[0,0],
+                                                cam_mtx[1,1],
+                                                cam_mtx[0,2],
+                                                cam_mtx[1,2]),
+                                        tag_size=tag_size)
     
-    return detection
+    tags = {det.tag_id: Apriltag(det) for det in detections}
+    return tags
 
-def draw_detection(img, detections, font=cv2.FONT_HERSHEY_SIMPLEX):
-    for det in detections:
-        corners = det.corners
-        center = det.center
-        pose_t = det.pose_t
-        pose_r = det.pose_R
-
-        corners = np.array(corners, dtype=np.int32)
-        center = tuple(map(int, center))
-
+def draw_detection(img, tags, font=cv2.FONT_HERSHEY_SIMPLEX):
+    for tag in tags.values():
         for i in range(4):
-            pt1 = tuple(corners[i])
-            pt2 = tuple(corners[(i + 1) % 4])
+            pt1 = tuple(tag.corners[i])
+            pt2 = tuple(tag.corners[(i + 1) % 4])
             cv2.line(img, pt1, pt2, (0, 255, 0), 2)
 
-        cv2.circle(img, center, 5, (0, 0, 255), 2)
-        cv2.putText(img, f"{det.tag_id}", (150,150), font, 
-                5, (255, 0, 0), 2, cv2.LINE_AA)
-        
+        cv2.circle(img, tag.center, 5, (0, 0, 255), 2)
+        cv2.putText(img, f"{tag.tag_id}", 
+                    tag.center, font, 
+                    2, (255, 0, 0), 
+                    2, cv2.LINE_AA)
+    return (img)
 
-        
+def distance_between_tags(tag1: Apriltag, tag2: Apriltag):
+    pos1 = np.array(tag1.pose_t).reshape(3)
+    pos2 = np.array(tag2.pose_t).reshape(3)
 
-    return (img, pose_t, pose_r)
+    dx = pos1[0] - pos2[0]
+    dy = pos1[1] - pos2[1]
+    dist = np.sqrt(dx**2 + dy**2)
+
+    # return np.linalg.norm(pos1 - pos2)
+    return (dx, dy, dist)
 
 if __name__ == "__main__":
     pass
