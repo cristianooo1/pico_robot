@@ -3,12 +3,18 @@ import cv2
 import numpy as np
 import threading
 import math
+import sys
+
+sys.path.insert(0, "/home/cristianooo/pico_robot/lib/hand_tracking/ai")
+import hand_tracking as ht
+
 
 from secretss import *
 from utils.ps4_controller import PS4Controller
 from utils.TCP_connection import TCPClient
 import apriltag_detection.apt_navigation as apd_nav
 import apriltag_detection.apt_detection as apd
+# import lib.hand_tracking as ht 
 
 ROBOT_TAG_ID = 13
 
@@ -88,10 +94,10 @@ def autonomous_rotation_loop(direction, tcp_client):
     cam.release()
     cv2.destroyAllWindows()
 
-def autonomous_get_to_point(tcp_client, target_point, xy_threshold = 0.05, yaw_threshold_deg = 5, lin = 0.15, ang = 0.4):
-    cam = cv2.VideoCapture(0, cv2.CAP_V4L2)
-    frame_width = int(cam.get(cv2.CAP_PROP_FRAME_WIDTH))
-    frame_height = int(cam.get(cv2.CAP_PROP_FRAME_HEIGHT))
+def autonomous_get_to_point(tcp_client, target_point, cam, xy_threshold = 0.05, yaw_threshold_deg = 5, lin = 0.15, ang = 0.4):
+    if cam is None or not cam.isOpened():
+        print("autonomous_get_to_point: provided camera is not open")
+        return (False, False)
 
     apriltag_detector = apd.make_aptDetector()
     cam_matrix = apd.get_calib_matrix()
@@ -100,57 +106,62 @@ def autonomous_get_to_point(tcp_client, target_point, xy_threshold = 0.05, yaw_t
     curr_ang = 0.0
 
     reached_goal = False
+    already_at_target = False
 
+    try:
+        while True:
+            ret, frame = cam.read()
+            gray_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
 
-    while True:
-        ret, frame = cam.read()
-        gray_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-
-        tags = apd.detect_Tags(apriltag_detector, gray_frame, cam_matrix)
-        detection = tags
-        
-        det_frame = apd.draw_detection(frame, detection)
-        cv2.imshow('Detected', det_frame)
-        if cv2.waitKey(1) == ord('q'):
-            break
-
-        if ROBOT_TAG_ID in tags:
-            poseR = tags[ROBOT_TAG_ID].pose_R
-            poseT =tags[ROBOT_TAG_ID].pose_t
-            axis, direction = apd_nav.get_closest_direction_and_axis(poseT, poseR, target_point)
-            print(f"go: {axis}, {direction}")
+            tags = apd.detect_Tags(apriltag_detector, gray_frame, cam_matrix)
+            detection = tags
             
-            if axis is None:
-                tcp_client.send_floats(0.0, 0.0)
-                print("reached goal")
-                reached_goal = True
-                break   
+    
+            det_frame = apd.draw_detection(frame, tags)
+            cv2.imshow('Apriltag Detected', det_frame)
+            if cv2.waitKey(1) == ord('q'):
+                break
 
-            fwd, angg, errr = apd_nav.rotate_robot_toNEW(direction, poseR)
-            # print(f"Forward: {fwd}, Turn: {angg}, Error: {errr}")
+            if ROBOT_TAG_ID in tags:
+                poseR = tags[ROBOT_TAG_ID].pose_R
+                poseT =tags[ROBOT_TAG_ID].pose_t
+                axis, direction = apd_nav.get_closest_direction_and_axis(poseT, poseR, target_point)
+                # print(f"go: {axis}, {direction}")
+                
+                if axis is None:
+                    tcp_client.send_floats(0.0, 0.0)
+                    print("reached goal")
+                    reached_goal = True
+                    already_at_target = True
+                    break   
 
-            if(angg != 0.0):
-                curr_lin = 0.0
-                if (angg != curr_ang):
-                    tcp_client.send_floats(0.0, angg)
-                    curr_ang = angg
+                fwd, angg, errr = apd_nav.rotate_robot_toNEW(direction, poseR)
+                # print(f"Forward: {fwd}, Turn: {angg}, Error: {errr}")
+
+                if(angg != 0.0):
+                    curr_lin = 0.0
+                    if (angg != curr_ang):
+                        tcp_client.send_floats(0.0, angg)
+                        curr_ang = angg
+                else:
+                    fwd = lin
+                    if(fwd != curr_lin):
+                        tcp_client.send_floats(fwd, 0.0)
+                        curr_lin = fwd
             else:
-                fwd = lin
+                tcp_client.send_floats(0.0, 0.0)
+                curr_lin = 0.0
+                curr_ang = 0.0
 
-                if(fwd != curr_lin):
-                    tcp_client.send_floats(fwd, 0.0)
-                    curr_lin = fwd
+            time.sleep(0.01)
+    finally:
+        try:
+            cv2.destroyWindow('Apriltag Detected')
+        except:
+            pass
 
+    return (reached_goal, already_at_target)
 
-        else:
-            tcp_client.send_floats(0.0, 0.0)
-            curr_lin = 0.0
-            curr_ang = 0.0
-
-        time.sleep(0.01)
-
-    cam.release()
-    cv2.destroyAllWindows()
 
 
 def main_camera_loop():
@@ -264,16 +275,16 @@ def main():
     client = TCPClient(host = SERVER_IP, port=PORT, timeout= 5.0)
     client.connect()
 
-    try:
+    # try:
         
-        autonomous_get_to_point(client, (0.36, 0.16))
-        autonomous_get_to_point(client, (0.36, -0.15))
-        autonomous_get_to_point(client, (-0.43, -0.15))
-        autonomous_get_to_point(client, (-0.43, 0.16))
+    #     autonomous_get_to_point(client, (0.36, 0.16))
+    #     autonomous_get_to_point(client, (0.36, -0.15))
+    #     autonomous_get_to_point(client, (-0.43, -0.15))
+    #     autonomous_get_to_point(client, (-0.43, 0.16))
 
-    except Exception as e:
-        print(e)
-        client.close()
+    # except Exception as e:
+    #     print(e)
+    #     client.close()
 
     """use to debug some math"""
     # e = (-1.57 + 1.6 + math.pi) % (2 * math.pi) - math.pi
@@ -283,6 +294,86 @@ def main():
 
     # point = (50, 50)
     # print(apd_nav.get_quadrant(point))
+
+    LEFT_TARGET = (-0.65, -0.05)
+    RIGHT_TARGET = (0.7, 0.5)
+
+    cam_phone = cv2.VideoCapture(0, cv2.CAP_V4L2)
+
+    cam_laptop = cv2.VideoCapture("/dev/video1")
+    cam_laptop.set(cv2.CAP_PROP_FOURCC, cv2.VideoWriter_fourcc(*'MJPG'))
+    cam_laptop.set(cv2.CAP_PROP_FRAME_WIDTH, 640)
+    cam_laptop.set(cv2.CAP_PROP_FRAME_HEIGHT, 480)
+    # cv2.namedWindow("Live Feed", cv2.WINDOW_NORMAL)  # Or cv2.WINDOW_AUTOSIZE
+    # cv2.moveWindow("Live Feed", 1920, 0)  # Position (X=200, Y=150) on screen
+
+
+    if not cam_laptop.isOpened():
+        raise RuntimeError("Cannot open laptop camera")
+    if not cam_phone.isOpened():
+        raise RuntimeError("Cannot open phone camera")
+
+    
+    main.result = None
+
+    left_active = False
+    prev_left = False
+    right_active = False
+    prev_right = False
+
+    try:
+        landmarker = ht.define_model()
+        start = time.monotonic()
+
+        while True:
+            ret1, frame1 = cam_laptop.read()
+            ret2, frame2 = cam_phone.read()
+            if not ret1 or not ret2:
+                time.sleep(0.1)
+                continue
+
+            ts = int((time.monotonic() - start) * 1000)
+            mp_img = ht.mp.Image(image_format=ht.mp.ImageFormat.SRGB, data=frame1)
+            landmarker.detect_async(mp_img, ts)
+
+            tip = ht.get_index_tip_coords(landmarker.get_result(), frame1.shape) 
+            frame1, left_active, right_active = ht.draw_ui_sections(frame1, tip, left_active, right_active)
+
+            if left_active and not prev_left:
+                print(">>> finger ENTERED LEFT box")
+                reached, already = autonomous_get_to_point(client, LEFT_TARGET, cam=cam_phone)
+                if already:
+                    print("already at LEFT target")
+                if reached:
+                    print("reached LEFT target")
+                else:
+                    print("failed to reach LEFT target")
+
+            if right_active and not prev_right:
+                print(">>> finger ENTERED RIGHT box")
+                reached, already = autonomous_get_to_point(client, RIGHT_TARGET, cam=cam_phone)
+                if already:
+                    print("already at RIGHT target")
+                if reached:
+                    print("reached RIGHT target")
+                else:
+                    print("failed to reach RIGHT target")
+
+            # update previous state for the next frame
+            prev_left = left_active
+            prev_right = right_active
+
+            if landmarker.get_result():
+                frame1 = ht.draw_hand_landmarks(frame1, landmarker.get_result())
+
+            cv2.imshow("Live Feed", frame1)
+            cv2.imshow("Phone Feed", frame2)
+            if cv2.waitKey(1) & 0xFF == ord('q'):
+                break
+    finally:
+        cam_phone.release()
+        cam_laptop.release()
+        cv2.destroyAllWindows()
 
 
 
