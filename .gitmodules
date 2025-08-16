@@ -7,3 +7,6 @@
 [submodule "lib/Gamepad"]
 	path = lib/Gamepad
 	url = https://github.com/piborg/Gamepad.git
+[submodule "lib/hand_tracking"]
+	path = lib/hand_tracking
+	url = https://github.com/cristianooo1/dino_hand_ai.git
